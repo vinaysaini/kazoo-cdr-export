@@ -30,7 +30,7 @@ prompt.get(schema, function (err, result) {
         var fm = from;
         function loop(){
             t = fm + (24*60*60);
-            getCDR(fm, t, authData, function(){
+            getCDR1(fm, t, authData, function(){
                 fm = t;
                 if(fm != to){
                     loop();
@@ -62,6 +62,51 @@ function getCDR(from, to, authData, callback){
                 console.log('No Data for Date: ',date);
                 callback();
            }
+        }else{
+            console.log("Error Fetching CDRs from kazoo");
+            console.log("response=",response);
+        }
+    })
+}
+
+function getCDR1(from, to, authData, callback){
+    var date = Kazoo.parseDate(from);
+    // Get cdrs from kazoo
+    var totalMin = {};
+    Kazoo.getCDRs(authData, from, to, function(response){
+        if(response.status == "success"){
+            if(response.data.length>0){
+                for(i=0;i<response.data.length;i++){
+                    billing_seconds = parseInt(response.data[i].billing_seconds);
+                    if(response.data[i].direction == "outbound" && billing_seconds>0){
+                        var prefix = response.data[i].callee_id_number.substring(0, 2);
+                        if(!totalMin[prefix]){
+                            totalMin[prefix] = billing_seconds;
+                        }else{
+                            totalMin[prefix] = totalMin[prefix]+billing_seconds;
+                        }
+                    }
+                    if(i == response.data.length-1){
+                        console.log("Total Minutes for Date:",date);
+                        for(var key in totalMin){
+                            var min = Math.floor(totalMin[key] / 60);
+                            console.log("Prefix: ", key,"Minutes: ",min);
+                        }
+                        json2csv({ data: response.data}, function(err, csv) {
+                            if (err) console.log(err);
+                            //Generate CSV file.
+                            fs.appendFile('csv/'+date+'.csv', csv, function(err) {
+                                if (err) throw err;
+                                console.log('file saved for date: ',date);
+                                callback();
+                            });
+                        });
+                    }                
+                }
+            }else{
+                console.log('No Data for Date: ',date);
+                callback();
+            }    
         }else{
             console.log("Error Fetching CDRs from kazoo");
             console.log("response=",response);
