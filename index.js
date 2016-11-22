@@ -45,7 +45,7 @@ prompt.get(schema, function (err, result) {
                     loop();
                 }else{
                     console.log("==============================================");
-                    console.log("Total Minutes from: ",from," to: ",to);
+                    console.log("Total Minutes from: ",result.From," to: ",result.To);
                     for(var key in finalTotal){
                         console.log("Prefix: ", key,"Minutes: ",finalTotal[key]);
                     }
