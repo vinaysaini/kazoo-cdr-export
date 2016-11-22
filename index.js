@@ -28,12 +28,27 @@ prompt.get(schema, function (err, result) {
     Kazoo.getAuth(function(authData){
         //Divide timestamp to generate CDR based on single date
         var fm = from;
+        var finalTotal = {};
         function loop(){
             t = fm + (24*60*60);
-            getCDR1(fm, t, authData, function(){
+            getCDR1(fm, t, authData, function(totalMin){
                 fm = t;
+                for(var key in totalMin){
+                    var min = Math.floor(totalMin[key] / 60);
+                    if(!finalTotal[key]){
+                        finalTotal[key] = min;
+                    }else{
+                        finalTotal[key] = finalTotal[key]+ min;
+                    }
+                }
                 if(fm != to){
                     loop();
+                }else{
+                    console.log("==============================================");
+                    console.log("Total Minutes from: ",from," to: ",to);
+                    for(var key in finalTotal){
+                        console.log("Prefix: ", key,"Minutes: ",finalTotal[key]);
+                    }
                 }
             });
         }
@@ -98,14 +113,14 @@ function getCDR1(from, to, authData, callback){
                             fs.appendFile('csv/'+date+'.csv', csv, function(err) {
                                 if (err) throw err;
                                 console.log('file saved for date: ',date);
-                                callback();
+                                callback(totalMin);
                             });
                         });
                     }                
                 }
             }else{
                 console.log('No Data for Date: ',date);
-                callback();
+                callback(totalMin);
             }    
         }else{
             console.log("Error Fetching CDRs from kazoo");
